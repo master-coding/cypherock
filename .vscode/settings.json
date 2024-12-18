@@ -4,6 +4,10 @@
         "secp256k1.h": "c",
         "zkp_context.h": "c",
         "secp256k1_preallocated.h": "c",
-        "bn.h": "c"
+        "bn.h": "c",
+        "types.h": "c",
+        "e_os2.h": "c",
+        "macros.h": "c",
+        "opensslconf.h": "c"
     }
 }

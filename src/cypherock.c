@@ -1,28 +1,27 @@
+// Check README file for details
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
 #include "../include/trezor/ecdsa.h"
 #include "../include/trezor/secp256k1.h"
-#include "../include/trezor/sha2.h" 
+#include "../include/trezor/sha2.h"
 
-
-// Constant definitions
 #define BYTE_LENGTH 32
+#define SECURITY_PARAMETER 128 
 
-// Struct to represent a share
 typedef struct {
     unsigned char share[BYTE_LENGTH];
-} Share;
+    unsigned char commitment[SHA256_DIGEST_LENGTH];
+} COTShare;
 
-// XOR function for byte arrays
 void xor_bytes(unsigned char *result, const unsigned char *a, const unsigned char *b, size_t length) {
     for (size_t i = 0; i < length; i++) {
         result[i] = a[i] ^ b[i];
     }
 }
 
-// Generate random bytes securely
 void generate_random_bytes(unsigned char *bytes, size_t length) {
     FILE *urandom = fopen("/dev/urandom", "r");
     if (!urandom || fread(bytes, 1, length, urandom) != length) {
@@ -32,129 +31,125 @@ void generate_random_bytes(unsigned char *bytes, size_t length) {
     fclose(urandom);
 }
 
-// Modular multiplication of a and b under curve's finite field order
-void mod_multiply(uint8_t *result, const uint8_t *a, const uint8_t *b, const ecdsa_curve *curve) {
-    bignum256 bn_a, bn_b, bn_result;
-    
-    // Convert input bytes to bignums
-    bn_read_be(a, &bn_a);
-    bn_read_be(b, &bn_b);
-    
-    // Perform modular multiplication
-    bn_multiply(&bn_a, &bn_b, &bn_result);
-    
-    // Ensure result is within the field order
-    bn_mod(&bn_result, &curve->order);
-    
-    // Write result back to byte array
-    bn_write_be(&bn_result, result);
-}
-
-// Generate additive shares of the product under the finite field
-void generate_additive_shares(
-    Share *share1, 
-    Share *share2, 
-    const unsigned char *a, 
-    const unsigned char *b, 
-    const ecdsa_curve *curve
-) {
-    unsigned char product[BYTE_LENGTH] = {0};
-    
-    // Compute product = (a * b) mod curve->order
-    mod_multiply(product, a, b, curve);
-    
-    // Generate random share and compute the complementary share
-    generate_random_bytes(share1->share, BYTE_LENGTH);
-    xor_bytes(share2->share, product, share1->share, BYTE_LENGTH);
-}
-
-// Validate shares: share1 XOR share2 == (a * b) mod field order
-int validate_shares(
-    const Share *share1, 
-    const Share *share2, 
-    const unsigned char *a, 
-    const unsigned char *b, 
-    const ecdsa_curve *curve
-) {
-    unsigned char reconstructed[BYTE_LENGTH] = {0};
-    unsigned char expected[BYTE_LENGTH] = {0};
-    
-    // Reconstruct by XOR'ing shares
-    xor_bytes(reconstructed, share1->share, share2->share, BYTE_LENGTH);
-    
-    // Compute expected product
-    mod_multiply(expected, a, b, curve);
-    
-    // Compare the results
-    return (memcmp(reconstructed, expected, BYTE_LENGTH) == 0);
-}
-
-// Optional: SHA256 hash verification for additional security
-void compute_sha256(
-    unsigned char *hash, 
+void compute_sha256_commitment(
+    unsigned char *commitment, 
     const unsigned char *data, 
     size_t len
 ) {
     SHA256_CTX sha256_ctx;
     sha256_Init(&sha256_ctx);
     sha256_Update(&sha256_ctx, data, len);
-    sha256_Final(&sha256_ctx, hash);
+    sha256_Final(&sha256_ctx, commitment);
+}
+
+void mod_multiply(
+    uint8_t *result, 
+    const uint8_t *a, 
+    const uint8_t *b, 
+    const ecdsa_curve *curve
+) {
+    bignum256 bn_a, bn_b, bn_result;
+    
+    bn_read_be(a, &bn_a);
+    bn_read_be(b, &bn_b);
+    
+    bn_multiply(&bn_a, &bn_b, &bn_result);
+    bn_mod(&bn_result, &curve->order);
+    
+    bn_write_be(&bn_result, result);
+}
+
+void correlated_oblivious_transfer(
+    const unsigned char *a,          
+    const unsigned char *b,          
+    COTShare *sender_share,          
+    COTShare *receiver_share,   
+    const ecdsa_curve *curve
+) {
+    unsigned char product[BYTE_LENGTH] = {0};
+    unsigned char correlation_seed[BYTE_LENGTH] = {0};
+    unsigned char receiver_randomness[BYTE_LENGTH] = {0};
+    
+    mod_multiply(product, a, b, curve);
+    
+    generate_random_bytes(correlation_seed, BYTE_LENGTH);
+    
+    generate_random_bytes(receiver_randomness, BYTE_LENGTH);
+    
+    xor_bytes(sender_share->share, correlation_seed, a, BYTE_LENGTH);
+    compute_sha256_commitment(sender_share->commitment, sender_share->share, BYTE_LENGTH);
+    
+    unsigned char receiver_share_value[BYTE_LENGTH];
+    xor_bytes(receiver_share_value, correlation_seed, product, BYTE_LENGTH);
+    xor_bytes(receiver_share->share, receiver_share_value, receiver_randomness, BYTE_LENGTH);
+    compute_sha256_commitment(receiver_share->commitment, receiver_share->share, BYTE_LENGTH);
+}
+
+int verify_correlated_oblivious_transfer(
+    const COTShare *sender_share,
+    const COTShare *receiver_share,
+    const unsigned char *a,
+    const unsigned char *b,
+    const ecdsa_curve *curve
+) {
+    unsigned char product[BYTE_LENGTH] = {0};
+    unsigned char reconstructed[BYTE_LENGTH] = {0};
+    unsigned char reconstructed_commitment[SHA256_DIGEST_LENGTH] = {0};
+    
+    mod_multiply(product, a, b, curve);
+    
+    xor_bytes(reconstructed, sender_share->share, receiver_share->share, BYTE_LENGTH);
+    
+    compute_sha256_commitment(reconstructed_commitment, reconstructed, BYTE_LENGTH);
+    
+    return (
+        memcmp(reconstructed, product, BYTE_LENGTH) == 0 &&
+        memcmp(sender_share->commitment, sender_share->commitment, SHA256_DIGEST_LENGTH) == 0 &&
+        memcmp(receiver_share->commitment, receiver_share->commitment, SHA256_DIGEST_LENGTH) == 0
+    );
 }
 
 int main() {
-    const ecdsa_curve *curve = &secp256k1; // Use secp256k1 curve
+    const ecdsa_curve *curve = &secp256k1;
     
-    // Generate two random 32-byte numbers
     unsigned char a[BYTE_LENGTH], b[BYTE_LENGTH];
     generate_random_bytes(a, BYTE_LENGTH);
     generate_random_bytes(b, BYTE_LENGTH);
     
-    printf("Random Number A: ");
+    bignum256 bn_a, bn_b;
+    bn_read_be(a, &bn_a);
+    bn_mod(&bn_a, &curve->order);
+    bn_write_be(&bn_a, a);
+
+    bn_read_be(b, &bn_b);
+    bn_mod(&bn_b, &curve->order);
+    bn_write_be(&bn_b, b);
+    
+    COTShare sender_share, receiver_share;
+    
+    correlated_oblivious_transfer(a, b, &sender_share, &receiver_share, curve);
+    
+    printf("Input Share A: ");
     for (int i = 0; i < BYTE_LENGTH; i++) printf("%02x", a[i]);
     printf("\n");
     
-    printf("Random Number B: ");
+    printf("Input Share B: ");
     for (int i = 0; i < BYTE_LENGTH; i++) printf("%02x", b[i]);
     printf("\n");
     
-    // Generate shares
-    Share share1, share2;
-    generate_additive_shares(&share1, &share2, a, b, curve);
-    
-    printf("Share 1: ");
-    for (int i = 0; i < BYTE_LENGTH; i++) printf("%02x", share1.share[i]);
+    printf("Sender Share: ");
+    for (int i = 0; i < BYTE_LENGTH; i++) printf("%02x", sender_share.share[i]);
     printf("\n");
     
-    printf("Share 2: ");
-    for (int i = 0; i < BYTE_LENGTH; i++) printf("%02x", share2.share[i]);
+    printf("Receiver Share: ");
+    for (int i = 0; i < BYTE_LENGTH; i++) printf("%02x", receiver_share.share[i]);
     printf("\n");
     
-    // Optional: SHA256 hash verification
-    unsigned char hash_a[SHA256_DIGEST_LENGTH];
-    unsigned char hash_b[SHA256_DIGEST_LENGTH];
-    unsigned char hash_share1[SHA256_DIGEST_LENGTH];
-    unsigned char hash_share2[SHA256_DIGEST_LENGTH];
-    
-    compute_sha256(hash_a, a, BYTE_LENGTH);
-    compute_sha256(hash_b, b, BYTE_LENGTH);
-    compute_sha256(hash_share1, share1.share, BYTE_LENGTH);
-    compute_sha256(hash_share2, share2.share, BYTE_LENGTH);
-    
-    printf("SHA256 Hash of A:       ");
-    for (int i = 0; i < SHA256_DIGEST_LENGTH; i++) printf("%02x", hash_a[i]);
-    printf("\nSHA256 Hash of B:       ");
-    for (int i = 0; i < SHA256_DIGEST_LENGTH; i++) printf("%02x", hash_b[i]);
-    printf("\nSHA256 Hash of Share 1: ");
-    for (int i = 0; i < SHA256_DIGEST_LENGTH; i++) printf("%02x", hash_share1[i]);
-    printf("\nSHA256 Hash of Share 2: ");
-    for (int i = 0; i < SHA256_DIGEST_LENGTH; i++) printf("%02x", hash_share2[i]);
-    printf("\n");
-    
-    // Validate shares
-    if (validate_shares(&share1, &share2, a, b, curve)) {
-        printf("Shares are valid: a * b = share1 + share2 under the finite field.\n");
+    if (verify_correlated_oblivious_transfer(&sender_share, &receiver_share, a, b, curve)) {
+        printf("Correlated Oblivious Transfer Verification Successful!\n");
+        printf("Shares satisfy multiplicative relationship under finite field.\n");
     } else {
-        printf("Share validation failed!\n");
+        printf("Correlated Oblivious Transfer Verification Failed!\n");
     }
     
     return 0;
