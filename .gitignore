@@ -1,37 +1,97 @@
-# Compiled Object files
-**/*.o
-**/*.obj
-**/*.ko
+# Object files
+*.o
+*.ko
+*.obj
+*.elf
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Libraries
+*.lib
+*.a
+*.la
+*.lo
+
+# Shared objects (inc. Windows DLLs)
+*.dll
+*.so
+*.so.*
+*.dylib
 
 # Executables
-**/*.exe
-**/*.out
-**/*.app
+*.exe
+*.out
+*.app
+*.i*86
+*.x86_64
+*.hex
+
+# Debug files
+*.dSYM/
+*.su
+*.idb
+*.pdb
 
 # Build directories
-**/build/
-**/bin/
-**/obj/
-
-# Temporary files
-**/*.tmp
-**/*.log
-
-# macOS specific
-**/.DS_Store
-
-# IDE specific
-**/.vscode/
-**/.idea/
+build/
+bin/
+obj/
 
 # Dependency directories
-**/libs/
-**/vendor/
+libs/
+vendor/
+dependencies/
 
-# Cryptographic sensitive files
-**/*.key
-**/*.pem
+# IDE-specific files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Compiler/Linker generated files
+*.log
+*.status
+Makefile
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+
+# Sensitive or local configuration
+*.env
+*.config
+local_config.h
+
+# Temporary files
+*.tmp
+*.bak
 
 # Backup files
-**/*.bak
-**/*.backup
+*.backup
+
+# Compilation intermediate files
+*.d
+
+# Specific to cryptographic projects
+*.key
+*.pem
+*.crt
+
+# Profiling and performance analysis
+*.prof
+*.out.lprof
+
+# User-specific project settings
+*.xcuserstate
+*.xcscmblueprint
