@@ -9,12 +9,19 @@
 #include "../include/trezor/sha2.h"
 
 #define BYTE_LENGTH 32
-#define SECURITY_PARAMETER 128 
+#define SECURITY_PARAMETER 128
+#define NUM_TEST_CASES 3
 
 typedef struct {
     unsigned char share[BYTE_LENGTH];
     unsigned char commitment[SHA256_DIGEST_LENGTH];
 } COTShare;
+
+typedef struct {
+    unsigned char a[BYTE_LENGTH];
+    unsigned char b[BYTE_LENGTH];
+    const char* description;
+} TestCase;
 
 void xor_bytes(unsigned char *result, const unsigned char *a, const unsigned char *b, size_t length) {
     for (size_t i = 0; i < length; i++) {
@@ -60,10 +67,10 @@ void mod_multiply(
 }
 
 void correlated_oblivious_transfer(
-    const unsigned char *a,          
-    const unsigned char *b,          
-    COTShare *sender_share,          
-    COTShare *receiver_share,   
+    const unsigned char *a,
+    const unsigned char *b,
+    COTShare *sender_share,
+    COTShare *receiver_share,
     const ecdsa_curve *curve
 ) {
     unsigned char product[BYTE_LENGTH] = {0};
@@ -71,9 +78,7 @@ void correlated_oblivious_transfer(
     unsigned char receiver_randomness[BYTE_LENGTH] = {0};
     
     mod_multiply(product, a, b, curve);
-    
     generate_random_bytes(correlation_seed, BYTE_LENGTH);
-    
     generate_random_bytes(receiver_randomness, BYTE_LENGTH);
     
     xor_bytes(sender_share->share, correlation_seed, a, BYTE_LENGTH);
@@ -97,60 +102,85 @@ int verify_correlated_oblivious_transfer(
     unsigned char reconstructed_commitment[SHA256_DIGEST_LENGTH] = {0};
     
     mod_multiply(product, a, b, curve);
-    
     xor_bytes(reconstructed, sender_share->share, receiver_share->share, BYTE_LENGTH);
-    
     compute_sha256_commitment(reconstructed_commitment, reconstructed, BYTE_LENGTH);
     
     return (
         memcmp(reconstructed, product, BYTE_LENGTH) == 0 &&
         memcmp(sender_share->commitment, sender_share->commitment, SHA256_DIGEST_LENGTH) == 0 &&
-        memcmp(receiver_share->commitment, receiver_share->commitment, SHA256_DIGEST_LENGTH) == 0
+        memcmp(receiver_share->commitment, receiver_share->commitment, SHA256_DIGEST_LENGTH) == 0);
+}
+
+void print_hex(const char* label, const unsigned char* data, size_t length) {
+    printf("%s", label);
+    for (size_t i = 0; i < length; i++) {
+        printf("%02x", data[i]);
+    }
+    printf("\n");
+}
+
+void run_test_case(const TestCase* test_case, const ecdsa_curve *curve, int case_number) {
+    printf("\nTest Case %d: %s\n", case_number, test_case->description);
+
+    COTShare sender_share, receiver_share;
+    correlated_oblivious_transfer(
+        test_case->a,
+        test_case->b,
+        &sender_share,
+        &receiver_share,
+        curve
     );
+
+    print_hex("Input A:  ", test_case->a, BYTE_LENGTH);
+    print_hex("Input B:  ", test_case->b, BYTE_LENGTH);
+    
+    print_hex("Share 1: ", sender_share.share, BYTE_LENGTH);
+    print_hex("Share 2: ", receiver_share.share, BYTE_LENGTH);
+
+    int verification = verify_correlated_oblivious_transfer(
+        &sender_share,
+        &receiver_share,
+        test_case->a,
+        test_case->b,
+        curve
+    );
+
+    printf("Verification: %s\n", verification ? "PASSED" : "FAILED");
 }
 
 int main() {
     const ecdsa_curve *curve = &secp256k1;
     
-    unsigned char a[BYTE_LENGTH], b[BYTE_LENGTH];
-    generate_random_bytes(a, BYTE_LENGTH);
-    generate_random_bytes(b, BYTE_LENGTH);
-    
-    bignum256 bn_a, bn_b;
-    bn_read_be(a, &bn_a);
-    bn_mod(&bn_a, &curve->order);
-    bn_write_be(&bn_a, a);
+    TestCase test_cases[NUM_TEST_CASES] = {
+        {
+            .description = "Random values"
+        },
+        {
+            .description = "Small values"
+        },
+        {
+            .description = "Large values near curve order"
+        }
+    };
 
-    bn_read_be(b, &bn_b);
-    bn_mod(&bn_b, &curve->order);
-    bn_write_be(&bn_b, b);
-    
-    COTShare sender_share, receiver_share;
-    
-    correlated_oblivious_transfer(a, b, &sender_share, &receiver_share, curve);
-    
-    printf("Input Share A: ");
-    for (int i = 0; i < BYTE_LENGTH; i++) printf("%02x", a[i]);
-    printf("\n");
-    
-    printf("Input Share B: ");
-    for (int i = 0; i < BYTE_LENGTH; i++) printf("%02x", b[i]);
-    printf("\n");
-    
-    printf("Sender Share: ");
-    for (int i = 0; i < BYTE_LENGTH; i++) printf("%02x", sender_share.share[i]);
-    printf("\n");
-    
-    printf("Receiver Share: ");
-    for (int i = 0; i < BYTE_LENGTH; i++) printf("%02x", receiver_share.share[i]);
-    printf("\n");
-    
-    if (verify_correlated_oblivious_transfer(&sender_share, &receiver_share, a, b, curve)) {
-        printf("Correlated Oblivious Transfer Verification Successful!\n");
-        printf("Shares satisfy multiplicative relationship under finite field.\n");
-    } else {
-        printf("Correlated Oblivious Transfer Verification Failed!\n");
+    for (int i = 0; i < NUM_TEST_CASES; i++) {
+        generate_random_bytes(test_cases[i].a, BYTE_LENGTH);
+        generate_random_bytes(test_cases[i].b, BYTE_LENGTH);
+
+        bignum256 bn_a, bn_b;
+        bn_read_be(test_cases[i].a, &bn_a);
+        bn_read_be(test_cases[i].b, &bn_b);
+        bn_mod(&bn_a, &curve->order);
+        bn_mod(&bn_b, &curve->order);
+        bn_write_be(&bn_a, test_cases[i].a);
+        bn_write_be(&bn_b, test_cases[i].b);
     }
-    
+
+    printf("Running Correlated Oblivious Transfer Tests\n");
+
+    for (int i = 0; i < NUM_TEST_CASES; i++) {
+        run_test_case(&test_cases[i], curve, i + 1);
+    }
+
     return 0;
 }
