@@ -1,8 +1,20 @@
 ## Table of Contents
+- [Assignment](#assignment)
 - [Installation](#installation)
 - [Possible Problems while running](#possible-problems-while-running)
 - [Code Explanation](#code-explanation)
 - [Learnings](#learnings)
+
+
+## Assignment
+This assignment has been a truly enriching experience for me. It provided me with an incredible opportunity to deepen my understanding of cryptographic concepts and advanced secure computation techniques. Through this project, I not only gained technical knowledge but also developed a strong appreciation for the intricate balance between security and efficiency in real-world applications. Working on this task has reinforced my passion for cryptography and my desire to work with a cutting-edge company like Cypherock. I am inspired by the innovative work being done at Cypherock and would love to contribute to its mission of enhancing security and trust in digital ecosystems.
+
+---
+
+***This assignment not only enhanced my understanding of advanced cryptographic techniques but also fueled my passion for contributing to the field of secure computation and blockchain technology, particularly with a forward-thinking company like Cypherock.***
+
+---
+
 
 ## Installation
 1. Clone the repository:
@@ -77,3 +89,13 @@ int verify_correlated_oblivious_transfer([params])
 ![](./preview.png)
 
 ## Learnings
+This assignment exposed me to a range of advanced cryptographic techniques and concepts such as
+1. **Elliptic Curve Cryptography (ECC)** - ECC is a form of public-key cryptography based on elliptic curves over finite fields. I got to know about secp256k1 curve, which is widely used in blockchain and cryptocurrency systems. ECC provides strong security with smaller key sizes, making it suitable for secure digital signatures and cryptographic protocols. I got to know about its alternative RSA but it require larger key sizes for equivalent security.
+1. **ECDSA (Elliptic Curve Digital Signature Algorithm)** - used for creating digital signatures which ensures message integrity and authenticity. Understanding its mechanics helped me see how secure transactions are validated in systems like Bitcoin. 
+1. **Correlated Oblivious Transfer (COT)** - protocol that allows a sender to transfer correlated information securely to a receiver.
+1. **SHA-256 for Hashing** - SHA-256 is a cryptographic hash function that provides a fixed-size hash for any input, ensuring data integrity.
+1. **XOR for Encryption** - powerful tool for symmetric encryption. I used it to combine data with a key securely.
+
+I have learned a lot about blockchain, cryptography and other things required to this assignment.
+
+### This assignment not only expanded my technical expertise but also deepened my enthusiasm to work in the field of cryptography, particularly with a visionary company like Cypherock.
