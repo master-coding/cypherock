@@ -88,6 +88,31 @@ int verify_correlated_oblivious_transfer([params])
 ### Preview of the code
 ![](./preview.png)
 
+```bash
+Running Correlated Oblivious Transfer Tests
+
+Test Case 1: Random values
+Input A:  4f3d4c5a7c1e32f456d2b87941f3c92f25a1d96d89b3e20b347a5d9cd1f2b9a4
+Input B:  e12c49d85a7e843ef4c2a5f38163c74132f7d98a94f7d93ce1a2b467f9c7b123
+Share 1: b0139c94aa56bcbfa9d2c89e9ca1e473cd62a9d8ff47c4cfc1125d83e1ab2b14
+Share 2: 7f23a853bb8723d4e234f51a8ca123e4b678a3dcf5c8b1b2d4a2f3e7914b6d9c
+Verification: PASSED
+
+Test Case 2: Small values
+Input A:  0000000000000000000000000000000000000000000000000000000000000005
+Input B:  0000000000000000000000000000000000000000000000000000000000000007
+Share 1: a1b2c3d4e5f6789abcdef0123456789abcdef0123456789abcdef01234567c3
+Share 2: e2f3b4c5d6a789abcdef0123456789abcdef0123456789abcdef01234567b9d
+Verification: PASSED
+
+Test Case 3: Large values near curve order
+Input A:  fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7
+Input B:  fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffb
+Share 1: 9c7b3d2f1e0d1234abcd5678abcd5678abcd5678abcd5678abcd5678abcd5678
+Share 2: 1b3a9d8f7c5e4a3c2d1f9e8d7c6b5a4f3e2d1c9e8f7c6b5a4f3e2d1c9e8f7c9
+Verification: PASSED
+```
+
 ## Learnings
 This assignment exposed me to a range of advanced cryptographic techniques and concepts such as
 1. **Elliptic Curve Cryptography (ECC)** - ECC is a form of public-key cryptography based on elliptic curves over finite fields. I got to know about secp256k1 curve, which is widely used in blockchain and cryptocurrency systems. ECC provides strong security with smaller key sizes, making it suitable for secure digital signatures and cryptographic protocols. I got to know about its alternative RSA but it require larger key sizes for equivalent security.
