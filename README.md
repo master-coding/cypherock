@@ -6,6 +6,8 @@
 - [Learnings](#learnings)
 
 
+***Code implementation is in src -> cypherock.c***
+
 ## Assignment
 This assignment has been a truly enriching experience for me. It provided me with an incredible opportunity to deepen my understanding of cryptographic concepts and advanced secure computation techniques. Through this project, I not only gained technical knowledge but also developed a strong appreciation for the intricate balance between security and efficiency in real-world applications. Working on this task has reinforced my passion for cryptography and my desire to work with a cutting-edge company like Cypherock. I am inspired by the innovative work being done at Cypherock and would love to contribute to its mission of enhancing security and trust in digital ecosystems.
 
