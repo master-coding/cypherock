@@ -98,4 +98,4 @@ This assignment exposed me to a range of advanced cryptographic techniques and c
 
 I have learned a lot about blockchain, cryptography and other things required to this assignment.
 
-### This assignment not only expanded my technical expertise but also deepened my enthusiasm to work in the field of cryptography, particularly with a visionary company like Cypherock.
+### This assignment not only expanded my technical expertise but also deepened my enthusiasm to work in the field of cryptography, particularly with an innovative company like Cypherock. Their groundbreaking work on secure digital wallets and decentralized key management aligns perfectly with my passion for enhancing security and trust in digital ecosystems.
